@@ -1,25 +1,87 @@
-import React, { useState } from 'react';
+import React, { useState, ChangeEvent } from "react";
+import { BaseApi } from "../../api/BaseApi";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router";
 
-const Users = () => {
-  const [users, setUsers] = useState([
-    { email: 'johndoe@example.com', name: 'John Doe' },
-    { email: 'janedoe@example.com', name: 'Jane Doe' },
-    { email: 'alexsmith@example.com', name: 'Alex Smith' },
-  ]); // Mock user data
+// Define the user type based on the API response
+interface User {
+  id: number;
+  email: string;
+  name: string;
+}
 
-  const [searchTerm, setSearchTerm] = useState('');
+// const fetchUsers = async (): Promise<User[]> => {
+//   const token = sessionStorage.getItem('token');
+//   const response = await fetch(`${BaseApi}/user`, {
+//     headers: {
+//       'Content-Type': 'application/json',
+//       Authorization: `Bearer ${token}`,
+//     },
+//   });
+
+//   if (!response.ok) {
+//     throw new Error(`Error: ${response.statusText}`);
+//   }
+
+//   // Ensure the API returns an array of users
+//   const data = await response.json();
+//   if (!Array.isArray(data)) {
+//     throw new Error('Invalid API response: Expected an array');
+//   }
+
+//   return data;
+// };
+
+const Users: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState<string>(""); // Search term state
+
+  const {
+    data: user,
+    isLoading,
+    error,
+  } = useQuery<User[]>({
+    queryKey: ["users"],
+    queryFn: async () => {
+      const token = sessionStorage.getItem("token");
+      const response = await fetch(`${BaseApi}/user`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch cars");
+      }
+      const data = await response.json();
+      return data.user;
+    },
+  });
 
   // Handle search input changes
-  const handleSearchChange = (e) => {
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>): void => {
     setSearchTerm(e.target.value);
   };
 
+  console.log("user" + JSON.stringify(user, null, 2));
+
   // Filter users based on search term
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = Array.isArray(user)
+    ? user.filter(
+        (u) =>
+          u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
 
   return (
     <div>
@@ -56,7 +118,12 @@ const Users = () => {
                   <td className="p-4 border border-gray-300">{user.email}</td>
                   <td className="p-4 border border-gray-300">{user.name}</td>
                   <td className="p-4 border border-gray-300">
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <button
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      onClick={() => {
+                        navigate(`profile/${user.id}`);
+                      }}
+                    >
                       View Profile
                     </button>
                   </td>

@@ -9,6 +9,7 @@ import AdminLayout from "./components/AdminLayout";
 import Profile from "./page/Profile";
 import AboutUs from "./page/AboutUs";
 import ContactUs from "./page/ContactUs";
+import AdminProfile from "./page/admin/AdminProfile";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const router = createBrowserRouter([
@@ -48,6 +49,10 @@ const router = createBrowserRouter([
   {
     path: "contact-us",
     element: <ContactUs/>
+  },
+  {
+    path: "admin/profile/:id",
+    element: <AdminProfile/>,
   },
   // {
   //   path: "admin/cars",

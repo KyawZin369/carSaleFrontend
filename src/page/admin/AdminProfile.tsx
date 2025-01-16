@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import Navigation from "../components/Navigation";
-import { BaseApi } from "../api/BaseApi";
+import Navigation from "../../components/Navigation";
+import { BaseApi } from "../../api/BaseApi";
 
 type User = {
   id: 5;
@@ -12,7 +12,7 @@ type User = {
   is_admin: 0;
 };
 
-const Profile = () => {
+const AdminProfile = () => {
   const navigate = useNavigate();
   const param = useParams();
 
@@ -207,4 +207,4 @@ const Profile = () => {
   );
 };
 
-export default Profile;
+export default AdminProfile;
