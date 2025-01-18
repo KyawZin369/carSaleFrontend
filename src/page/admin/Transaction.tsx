@@ -1,29 +1,88 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import {BaseApi} from '../../api/BaseApi'
+import { useQuery } from '@tanstack/react-query';
+import dayjs from 'dayjs';
+
+// Define the Transaction interface
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  profile_details: string | null;
+  is_admin: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Car {
+  id: number;
+  user_id: number;
+  make: string;
+  model: string;
+  registration_year: string;
+  price: string;
+  picture_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Bid {
+  id: number;
+  car_id: number;
+  user_id: number;
+  bid_price: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Transaction {
+  id: number;
+  user_id: number;
+  car_id: number;
+  bid_id: number;
+  transaction_date: string;
+  payment_method: string;
+  amount: string;
+  created_at: string;
+  updated_at: string;
+  user: User;
+  car: Car;
+  bid: Bid;
+}
+
+async function fetchTransaction() {
+  const token = sessionStorage.getItem('token');
+  const response = await fetch(`${BaseApi}/admin/transaction`,{
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return data.transactions;
+}
 
 const Transactions = () => {
-  const [transactions, setTransactions] = useState([
-    {
-      buyerName: 'John Doe',
-      carName: 'Toyota Camry',
-      carModel: '2021',
-      transactionDate: '2025-01-01',
-      paymentMethod: 'Credit Card',
-    },
-    {
-      buyerName: 'Jane Smith',
-      carName: 'Honda Accord',
-      carModel: '2022',
-      transactionDate: '2025-01-05',
-      paymentMethod: 'PayPal',
-    },
-    {
-      buyerName: 'Alex Johnson',
-      carName: 'Tesla Model 3',
-      carModel: '2023',
-      transactionDate: '2025-01-10',
-      paymentMethod: 'Bank Transfer',
-    },
-  ]); // Mock transaction data
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  // Fetch transactions on component mount
+
+  const {data , isLoading, error} = useQuery<Transaction[], Error>({
+    queryKey: ['transactions'],
+    queryFn: fetchTransaction,
+  })
+
+  useEffect(()=>{
+    if(data){
+      setTransactions(data);
+    }
+  }, [data]);
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -33,12 +92,12 @@ const Transactions = () => {
   };
 
   // Filter transactions based on search term
-  const filteredTransactions = transactions.filter(
+  const filteredTransactions = Array.isArray(data) ? data.filter(
     (transaction) =>
-      transaction.buyerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.carName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.carModel.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      transaction.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.car.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.car.model.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : [];
 
   return (
     <div>
@@ -64,7 +123,7 @@ const Transactions = () => {
           <thead>
             <tr className="bg-gray-100 text-left">
               <th className="p-4 border border-gray-300">Buyer Name</th>
-              <th className="p-4 border border-gray-300">Car Name</th>
+              <th className="p-4 border border-gray-300">Make</th>
               <th className="p-4 border border-gray-300">Car Model</th>
               <th className="p-4 border border-gray-300">Transaction Date</th>
               <th className="p-4 border border-gray-300">Payment Method</th>
@@ -74,11 +133,11 @@ const Transactions = () => {
             {filteredTransactions.length > 0 ? (
               filteredTransactions.map((transaction, index) => (
                 <tr key={index} className="hover:bg-gray-50">
-                  <td className="p-4 border border-gray-300">{transaction.buyerName}</td>
-                  <td className="p-4 border border-gray-300">{transaction.carName}</td>
-                  <td className="p-4 border border-gray-300">{transaction.carModel}</td>
-                  <td className="p-4 border border-gray-300">{transaction.transactionDate}</td>
-                  <td className="p-4 border border-gray-300">{transaction.paymentMethod}</td>
+                  <td className="p-4 border border-gray-300">{transaction.user.name}</td>
+                  <td className="p-4 border border-gray-300">{transaction.car.make}</td>
+                  <td className="p-4 border border-gray-300">{transaction.car.model}</td>
+                  <td className="p-4 border border-gray-300">{dayjs(transaction.transaction_date).format("DD/MM/YYYY")}</td>
+                  <td className="p-4 border border-gray-300">{transaction.payment_method}</td>
                 </tr>
               ))
             ) : (
