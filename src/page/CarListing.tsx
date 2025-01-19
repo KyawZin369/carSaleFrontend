@@ -1,7 +1,6 @@
-// src/pages/CarListing.tsx
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import Navigation from "../components/Navigation";
 import { BaseApi } from "../api/BaseApi";
 
@@ -23,7 +22,6 @@ type Car = {
   };
 };
 
-
 // Fetch function
 const fetchCars = async (): Promise<Car[]> => {
   const token = sessionStorage.getItem("token");
@@ -32,7 +30,7 @@ const fetchCars = async (): Promise<Car[]> => {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
     credentials: "include",
   });
@@ -40,11 +38,10 @@ const fetchCars = async (): Promise<Car[]> => {
   if (!response.ok) {
     const error = await response.json();
     console.error("Fetch error details:", error);
-    throw new Error(error.message || "Failed to fetch car data");
+    throw new Error(error?.message || "Failed to fetch car data");
   }
 
   const data = await response.json();
-  console.log("API raw response:", data);
 
   if (!Array.isArray(data.cars)) {
     throw new Error("Unexpected response format: Expected an array in 'cars'");
@@ -53,12 +50,59 @@ const fetchCars = async (): Promise<Car[]> => {
   return data.cars;
 };
 
+const buyCar = async (carId: number, carPrice: number, user_id): Promise<any> => {
+  const token = sessionStorage.getItem("token");
+
+  const response = await fetch(`${BaseApi}/user/bit`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ car_id: carId, bid_price: carPrice, user_id: user_id }),
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    console.error("Buy car error details:", error);
+    throw new Error(error?.message || "Failed to buy the car");
+  }
+
+  return response.json();
+};
 
 const CarListing = () => {
   const { data: cars, isLoading, isError, error } = useQuery<Car[]>({
     queryKey: ["cars"],
     queryFn: fetchCars,
   });
+
+  const [selectedCar, setSelectedCar] = useState<Car | null>(null);
+  const [isModalOpen, setModalOpen] = useState(false);
+
+  const { mutate: buyCarMutate, isPending: isBuying } = useMutation<
+    any,
+    Error,
+    { carId: number; carPrice: number, user_id: number }
+  >({
+    mutationKey: ["buy-car"],
+    mutationFn: ({ carId, carPrice, user_id }) => buyCar(carId, carPrice, user_id),
+    onSuccess: (data) => {
+      console.log("Car purchase successful:", data);
+      alert("Car purchased successfully!");
+      setModalOpen(false);
+    },
+    onError: (err) => {
+      console.error("Error buying car:", err);
+      alert("Failed to purchase the car. Please try again.");
+    },
+  });
+
+  const handleBuyClick = (car: Car) => {
+    setSelectedCar(car);
+    setModalOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -78,12 +122,20 @@ const CarListing = () => {
     );
   }
 
-  const userToken = sessionStorage.getItem('token');
-  const userId = sessionStorage.getItem('user');
+  const userToken = sessionStorage.getItem("token");
+  const userId = JSON.parse(sessionStorage.getItem("user") || "null");
+
+
+  const confirmPurchase = () => {
+    if (selectedCar) {
+      buyCarMutate({ carId: selectedCar.id, carPrice: selectedCar.price, user_id: userId });
+    }
+  };
+
 
   return (
     <div>
-      <Navigation token={userToken} userId={userId}/>
+      <Navigation token={userToken} userId={userId} />
       <div
         className="relative min-h-screen bg-cover bg-center"
         style={{ backgroundImage: "url(/banner.jpg)" }}
@@ -116,7 +168,10 @@ const CarListing = () => {
                     >
                       View Details
                     </Link>
-                    <button className="bg-green-500 text-white px-4 py-2 rounded shadow hover:bg-green-600">
+                    <button
+                      onClick={() => handleBuyClick(car)}
+                      className="bg-green-500 text-white px-4 py-2 rounded shadow hover:bg-green-600 disabled:opacity-50"
+                    >
                       Buy
                     </button>
                   </div>
@@ -126,6 +181,37 @@ const CarListing = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal */}
+      {isModalOpen && selectedCar && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <h2 className="text-2xl font-bold mb-4">
+              Confirm Purchase
+            </h2>
+            <p className="mb-4">
+              Are you sure you want to buy the{" "}
+              <strong>{`${selectedCar.make} ${selectedCar.model}`}</strong> for{" "}
+              <strong>${selectedCar.price.toLocaleString()}</strong>?
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setModalOpen(false)}
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmPurchase}
+                disabled={isBuying}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50"
+              >
+                {isBuying ? "Processing..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
