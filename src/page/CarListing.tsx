@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Navigation from "../components/Navigation";
 import { BaseApi } from "../api/BaseApi";
+import Footer from "../components/Footer";
 
 type Car = {
   id: number;
@@ -50,7 +51,11 @@ const fetchCars = async (): Promise<Car[]> => {
   return data.cars;
 };
 
-const buyCar = async (carId: number, carPrice: number, user_id): Promise<any> => {
+const buyCar = async (
+  carId: number,
+  carPrice: number,
+  user_id
+): Promise<any> => {
   const token = sessionStorage.getItem("token");
 
   const response = await fetch(`${BaseApi}/user/bit`, {
@@ -59,7 +64,11 @@ const buyCar = async (carId: number, carPrice: number, user_id): Promise<any> =>
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ car_id: carId, bid_price: carPrice, user_id: user_id }),
+    body: JSON.stringify({
+      car_id: carId,
+      bid_price: carPrice,
+      user_id: user_id,
+    }),
     credentials: "include",
   });
 
@@ -73,7 +82,12 @@ const buyCar = async (carId: number, carPrice: number, user_id): Promise<any> =>
 };
 
 const CarListing = () => {
-  const { data: cars, isLoading, isError, error } = useQuery<Car[]>({
+  const {
+    data: cars,
+    isLoading,
+    isError,
+    error,
+  } = useQuery<Car[]>({
     queryKey: ["cars"],
     queryFn: fetchCars,
   });
@@ -84,10 +98,11 @@ const CarListing = () => {
   const { mutate: buyCarMutate, isPending: isBuying } = useMutation<
     any,
     Error,
-    { carId: number; carPrice: number, user_id: number }
+    { carId: number; carPrice: number; user_id: number }
   >({
     mutationKey: ["buy-car"],
-    mutationFn: ({ carId, carPrice, user_id }) => buyCar(carId, carPrice, user_id),
+    mutationFn: ({ carId, carPrice, user_id }) =>
+      buyCar(carId, carPrice, user_id),
     onSuccess: (data) => {
       console.log("Car purchase successful:", data);
       alert("Car purchased successfully!");
@@ -125,13 +140,15 @@ const CarListing = () => {
   const userToken = sessionStorage.getItem("token");
   const userId = JSON.parse(sessionStorage.getItem("user") || "null");
 
-
   const confirmPurchase = () => {
     if (selectedCar) {
-      buyCarMutate({ carId: selectedCar.id, carPrice: selectedCar.price, user_id: userId });
+      buyCarMutate({
+        carId: selectedCar.id,
+        carPrice: selectedCar.price,
+        user_id: userId,
+      });
     }
   };
-
 
   return (
     <div>
@@ -179,16 +196,22 @@ const CarListing = () => {
               </div>
             ))}
           </div>
+          <div className="mt-4 text-center mt-48">
+            <Link to="/car-add" className="text-blue-500 hover:underline">
+              <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full" type="button">
+                Add Car To Sell
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
+      <Footer />
 
       {/* Modal */}
       {isModalOpen && selectedCar && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h2 className="text-2xl font-bold mb-4">
-              Confirm Purchase
-            </h2>
+            <h2 className="text-2xl font-bold mb-4">Confirm Purchase</h2>
             <p className="mb-4">
               Are you sure you want to buy the{" "}
               <strong>{`${selectedCar.make} ${selectedCar.model}`}</strong> for{" "}

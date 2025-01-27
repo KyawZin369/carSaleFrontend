@@ -11,6 +11,7 @@ import AboutUs from "./page/AboutUs";
 import ContactUs from "./page/ContactUs";
 import AdminProfile from "./page/admin/AdminProfile";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import AddCar from "./page/AddCar";
 
 const router = createBrowserRouter([
   {
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
   {
     path: "car-list",
     element: <CarListing />,
+  },
+  {
+    path: "car-add",
+    element: <AddCar/>
   },
   {
     path: "car-detail/:id",
